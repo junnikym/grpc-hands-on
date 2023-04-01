@@ -31,6 +31,40 @@ gRPC 를 알기위해 `RPC`와 `HTTP 2.0`에 대한 이해가 필요하다.
 >    
 > <sub> * ref: <a> http://www.terms.co.kr/IDL.htm </a></sub>
 
+### HTTP 2.0
+HTTP2.0은 HTTP1.1의 프로토콜을 계승해 동일한 API 면서 성능 향상에 초점을 맞추었다.
+
+HTTP 1.1 은 기본적으로 클라이언트의 요청이 올때만 서버가 응답을 하는 구조로 매 요청마다 connection 을 생성해야만 한다. 
+따라서 RTT<sub>Round Trip Time</sub><sup>1</sup> 과 같은 문제가 발생하며, 
+메타 정보들을 저장하는 무거운 header 가 요청마다 중복 전달되어 비효율적이며 느린 속도를 보여주었다.
+
+HTTP 2.0 에서는 아래와 같은 방법을 통해 성능을 향상하였다.
+
+- Multiplexed Streams   
+  - 한 connection으로 동시에 여러개의 메시지를 주고 받을 수 있다.
+  - Response는 순서에 상관없이 Steram 으로 받는다.
+  - Stream Prioritization
+    - 리소스 간 우선순위를 설정해 Client 가 먼저 필요한 리소스부터 보내줄 수 있다.
+- Server Push
+  - Server 는 Client 가 요청하지 않은 리소스를 마음대로 보내줄 수 있다.
+- Header Compression
+  - HPACK 압축방식을 통해 Header 를 압축하여 중복 제거 후 전달
+
+> **외전**   
+> HTTP 1.1 에서 동시전송 문제와 다수 리소스를 처리하기 위해 `Pipelining`이 제안되었다.   
+> 
+> HTTP 1.0 의 동작은 2개의 요청을 보낼 때, `요청(1)->응답(1)->요청(2)->응답(2)` 와 하나의 요청이 다 끝나야 다음 요청을 보낼 수 있었다.
+>    
+> 반면, Pipelining 을 사용할 경우 `요청(1)->요청(2)->응답(1)->응답(2)` 와 같은 형식으로 
+> 요청에 대한 응답을 받지 않아도 여러개의 요청을 하나의 TCP/IP Pakcet 으로 Packing 할 수 있다.   
+>    
+> 하지만 이러한 Pipelining 에도 HOLB<sub>Head Of Line Blocking</sub> 등.. 과 같은 문제가 발생 한다.   
+> ** HOLB<sub>Head Of Line Blocking</sub> : 만약 첫번째 응답이 지연되면, 이후 두번째, 세번째 응답도 같이 지연되는 문제이다.
+
+> <sup>1</sup>RTT<sub>Round Trip Time</sub>   
+> HTTP 1.1 은 하나의 Connection, 하나의 요청으로 작동하기 때문에 Connection 을 생성 할 때 마다 TCP 연결을 하게된다.
+> TCP Connection 은 시작 시 3-way handshake, 종료 시 4-way handshake 를 진행하게되기 때문에 이로 인한 오버헤드가 발생한다.
+
 <참고>
  - https://medium.com/naver-cloud-platform/nbp-기술-경험-시대의-흐름-grpc-깊게-파고들기-1-39e97cb3460
  - https://chacha95.github.io/2020-06-15-gRPC1/
