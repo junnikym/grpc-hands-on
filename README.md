@@ -197,6 +197,84 @@ Postman 에서는 gRPC 요청에 필요한 값을 랜덤으로 생성해주는 �
 
 ![grpc request creation on postman](./images/postman-grpc-request.jpg)
 
+## Proto3 
+위에서 실습함과 같이 gRPC 에서는 Proto3 를 사용하여 요청값과 응답값을 정의한다. 
+ProtoBuf(Protocol Buffer)는 google 에서 개발된 구조화된 데이터 (structured data) 를 직렬화 (Serialization) 하는 기법이다. 
+기존에 REST 에서 사용하던 JSON 이나 XML 보다 훨신 가볍다. 
+
+.proto 확장자의 파일에 data structure 를 정의 후 protoc<sub>protocol buffoer compiler</sub> 를 통해 Compile 한다.
+개발자는 compile 된 소스를 통해 데이터를 쉽게 읽고 쓸 수 있다.
+
+### Proto file
+아래는 이러한 proto 파일에서 정보들을 명세하는 기본적인 구성요소이다.
+
+#### Message
+proto 는 주고 받는 데이터를 `message` 키워드를 통해 정의하며, message 내부에는 주고 받고자 하는 데이터 필드를 구성한다.
+```protobuf
+syntax = "proto3";
+
+message SampleRequest {
+  string no_meaning_field = 1;
+  int32 this_also = 2;
+  int32 same_here = 3;
+}
+```
+
+> - 첫 줄의 `syntax = "proto3";` 가 없을 경우, proto2 버전으로 지정된다. (gRPC 는 proto3 를 사용한다.)   
+> - proto 는 `camelCase`또는 `snake_case`를 권장한다. (필수사항은 아니다.)
+
+#### Field Rules
+proto 에서는 아래와 같은 키워드를 활용하여 field 의 성질을 지정해 줄 수 있다.
+- required: 필수 값 (only proto2)
+- optional: 필드를 1개 또는 가지지 않음 (only proto2)
+- repeated: 임의 반복 가능한 필드 (번호 및 값의 순서는 보존)
+  - `[packed=true]` 옵션을 붙일 경우 key-value 쌍 에서 value 만 반복된다. (배열 형태로 사용)
+
+```protobuf
+// Proto 2 예시
+message RequestProto2 {
+  required string no_meaning_field = 1;
+  optional int32 this_also2 = 2;
+  optional int32 same_here = 3;
+}
+
+// proto 3 예시
+message RequestProto3 {
+  string no_meaning_field = 1;
+  int32 this_also2 = 2;
+  repeated int32 same_here = 3 [packed=true];
+}
+```
+
+위 예시에 보면 각 필드 뒤 `= 1` 과 같은 형태로 숫자가 부여된다. 이는 `Unique Number` 이며, Binary format 에서 field 를 식별하는데 사용된다.
+자세한 사항은 아래 Encoding/Decoding 파트에서 서술.
+  
+#### Package
+Package 는 Message type 이름을 중첩없이 구분할 때 사용된다.
+
+```protobuf
+package foo.bar;
+message Foo {
+  ...
+}
+message Bar {
+  foo.bar.Foo foo = 1;
+}
+```
+
+#### Service
+Service 는 최종적으로 RPC 를 통해 서버가 클라이언트에게 제공할 함수의 형태를 정의한다. (PascalCase 를 권장한다.)
+기본적으로 단일 요청/응답 형태이지만, stream 옵션을 줄 수도 있다.
+
+```protobuf
+service SampleService {
+  rpc DoNothing (SampleRequest) returns (SampleRequest);
+  rpc DoAnything (stream SampleRequest) returns (stream SampleRequest);
+}
+```
+
+위에서 소개한 것 외 enum, reserved 등.. 다양한 기능이 존재한다. 이는 [여기](https://protobuf.dev/programming-guides/proto3/)에서 자세히 확인 할 수 있다.
+
 > **번외**   
 > - (2023.04.02 기준) grpc-spring-boot-starter 이  3.0.5 버전에서 작동하지 않는 이슈가 있어 2.7.10 버전으로 낮추었다.
 > - `Unexpected request [PRI * HTTP/2.0]` 와 같은 오류가 발생하였는데, 이는 서버에서 HTTP 2.0 를 받지 못해 생긴 이슈이다. `server.http2.enabled` 설정을 true 로 설정하여 해결가능하다.
@@ -204,3 +282,4 @@ Postman 에서는 gRPC 요청에 필요한 값을 랜덤으로 생성해주는 �
 <참고>
  - https://medium.com/naver-cloud-platform/nbp-기술-경험-시대의-흐름-grpc-깊게-파고들기-1-39e97cb3460
  - https://chacha95.github.io/2020-06-15-gRPC1/
+ - https://yidongnan.github.io/grpc-spring-boot-starter/en/server/getting-started.html#interface-project
